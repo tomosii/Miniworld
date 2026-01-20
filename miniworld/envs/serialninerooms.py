@@ -54,7 +54,8 @@ class SerialNineRooms(MiniWorldEnv, utils.EzPickle):
         "wood",
         "slime",
         "rock",
-        "lava",
+        "lg_style_05_wall_yellow_d_result",
+        # "lava",
     ]
 
     def __init__(self, **kwargs):

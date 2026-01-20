@@ -125,7 +125,11 @@ class Texture:
                 path = get_file_path("textures", "%s_%d" % (tex_name, i), "png")
 
                 if not os.path.exists(path):
+                    # Also check the filename without the id
+                    path = get_file_path("textures", tex_name, "png")
+                    paths.append(path)
                     break
+
                 paths.append(path)
 
         assert len(paths) > 0, ValueError(
