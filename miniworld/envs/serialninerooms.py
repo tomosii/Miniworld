@@ -5,7 +5,7 @@ from miniworld.miniworld import MiniWorldEnv
 import math
 
 
-class SerialNinerooms(MiniWorldEnv, utils.EzPickle):
+class SerialNineRooms(MiniWorldEnv, utils.EzPickle):
     """
     ## Description
 

@@ -173,6 +173,6 @@ gym.register(
 )
 
 gym.register(
-    id="MiniWorld-SerialNinerooms-v0",
-    entry_point="miniworld.envs.serial_ninerooms:SerialNinerooms",
+    id="MiniWorld-SerialNineRooms-v0",
+    entry_point="miniworld.envs.serialninerooms:SerialNineRooms",
 )
