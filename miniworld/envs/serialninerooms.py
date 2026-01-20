@@ -3,6 +3,7 @@ from gymnasium import spaces, utils
 from miniworld.entity import Box, ImageFrame
 from miniworld.miniworld import MiniWorldEnv
 import math
+import random
 
 
 class SerialNineRooms(MiniWorldEnv, utils.EzPickle):
@@ -37,26 +38,61 @@ class SerialNineRooms(MiniWorldEnv, utils.EzPickle):
 
     """
 
-    ROOM_SIZE = 2
-    HALLWAY_LENGTH = 2
-    HALLWAY_WIDTH = 1
+    ROOM_SIZE = 2.4
+    HALLWAY_LENGTH = ROOM_SIZE * 1.5
+    HALLWAY_WIDTH = ROOM_SIZE * 0.5
     HALLWAY_MARGIN = (ROOM_SIZE - HALLWAY_WIDTH) / 2
 
     ENV_SIZE = ROOM_SIZE * 3 + HALLWAY_LENGTH * 2
     ENV_EDGE = ENV_SIZE / 2
 
     TEXTURES = [
-        "grass",
-        "cardboard",
-        "stucco",
-        "metal_grill",
-        "water",
-        "wood",
-        "slime",
-        "rock",
-        "lg_style_05_wall_yellow_d_result",
-        # "lava",
+        "grass_1",
+        "water_1",
+        "wood_1",
+        "slime_1",
+        "lava_1",
+        "floor_tiles_bw_1",
+        "lg_style_01_4tile_d_result",
+        "lg_style_01_wall_blue_1",
+        "lg_style_02_wall_dblue_d_result",
+        "lg_style_02_wall_purple_d_result",
+        "lg_style_03_wall_light_m_result",
+        "lg_style_03_wall_orange_1",
+        "lg_style_03_wall_purple_d_result",
+        "lg_style_04_wall_cerise_d_result",
+        "lg_style_04_wall_purple_d_result",
+        "lg_style_05_floor_blue_bright_d_result",
+        "lg_style_05_wall_yellow_bright_d_result",
+        "lg_style_04_floor_cyan_d_result",
+        "lg_style_01_wall_red_1",
+        "lg_style_02_floor_green_d_result",
     ]
+
+    TEXTURE_MAPPING = [
+        12,
+        17,
+        16,
+        0,
+        18,
+        19,
+        10,
+        9,
+        15,
+        7,
+        6,
+        1,
+        3,
+        11,
+        4,
+        2,
+        5,
+        14,
+        13,
+        8,
+    ]
+
+    TEXTURE_DEPENDENT_LENGTH = 3
 
     def __init__(self, **kwargs):
         MiniWorldEnv.__init__(self, max_episode_steps=250, **kwargs)
@@ -65,11 +101,23 @@ class SerialNineRooms(MiniWorldEnv, utils.EzPickle):
         # Allow only the movement actions
         self.action_space = spaces.Discrete(self.actions.move_forward + 1)
 
+    def _get_mapped_texture(self, texture_name):
+        current_index = self.TEXTURES.index(texture_name)
+        return self.TEXTURES[self.TEXTURE_MAPPING[current_index]]
+
+    def _get_shuffled_textures(self):
+        texture_list = random.sample(self.TEXTURES, self.TEXTURE_DEPENDENT_LENGTH)
+        print(f"Initial texture list: {texture_list}")
+        for _ in range(9):
+            texture = self._get_mapped_texture(
+                texture_list[-self.TEXTURE_DEPENDENT_LENGTH]
+            )
+            texture_list.append(texture)
+        return texture_list[self.TEXTURE_DEPENDENT_LENGTH :]
+
     def _gen_world(self):
-
+        # Create rooms
         rooms = []
-
-        # Add rooms
         for row in range(3):
             for col in range(3):
                 room = self.add_rect_room(
@@ -81,7 +129,8 @@ class SerialNineRooms(MiniWorldEnv, utils.EzPickle):
                     max_z=-self.ENV_EDGE
                     + row * (self.ROOM_SIZE + self.HALLWAY_LENGTH)
                     + self.ROOM_SIZE,
-                    floor_tex=self.TEXTURES[row * 3 + col],
+                    # floor_tex=self.TEXTURES[i],
+                    # floor_tex=current_texture,
                 )
                 rooms.append(room)
                 # print(
@@ -89,9 +138,23 @@ class SerialNineRooms(MiniWorldEnv, utils.EzPickle):
                 # )
 
         for i, room in enumerate(rooms):
+            # room.floor_tex_name = shuffled_textures[i]
             print(
-                f"Room {i}: min_x: {room.min_x}, max_x: {room.max_x}, min_z: {room.min_z}, max_z: {room.max_z}"
+                f"Room {i}: min_x: {room.min_x}, max_x: {room.max_x}, min_z: {room.min_z}, max_z: {room.max_z}, floor_tex: {room.floor_tex_name}"
             )
+
+        # Assign textures to rooms
+        shuffled_textures = self._get_shuffled_textures()
+        print(f"Shuffled textures: {shuffled_textures}")
+        rooms[0].floor_tex_name = shuffled_textures[0]
+        rooms[1].floor_tex_name = shuffled_textures[5]
+        rooms[2].floor_tex_name = shuffled_textures[6]
+        rooms[3].floor_tex_name = shuffled_textures[1]
+        rooms[4].floor_tex_name = shuffled_textures[4]
+        rooms[5].floor_tex_name = shuffled_textures[7]
+        rooms[6].floor_tex_name = shuffled_textures[2]
+        rooms[7].floor_tex_name = shuffled_textures[3]
+        rooms[8].floor_tex_name = shuffled_textures[8]
 
         # Add hallways between rooms (only vertical)
         for col in range(3):
