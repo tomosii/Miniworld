@@ -534,14 +534,17 @@ class MiniWorldEnv(gym.Env):
         self.obs_disp_height = obs_height * (self.obs_disp_width / obs_width)
 
         # For displaying text
-        self.text_label = pyglet.text.Label(
-            font_name="Arial",
-            font_size=14,
-            multiline=True,
-            width=400,
-            x=window_width + 5,
-            y=window_height - (self.obs_disp_height + 19),
-        )
+        try:
+            self.text_label = pyglet.text.Label(
+                font_name="Arial",
+                font_size=14,
+                multiline=True,
+                width=400,
+                x=window_width + 5,
+                y=window_height - (self.obs_disp_height + 19),
+            )
+        except Exception:
+            self.text_label = None
 
         # Initialize the state
         self.reset()
@@ -1684,12 +1687,13 @@ class MiniWorldEnv(gym.Env):
         )
 
         # Draw the text label in the window
-        self.text_label.text = "pos: (%.2f, %.2f, %.2f)\nangle: %d\nsteps: %d" % (
-            *self.agent.pos,
-            int(self.agent.dir * 180 / math.pi) % 360,
-            self.step_count,
-        )
-        self.text_label.draw()
+        if self.text_label:
+            self.text_label.text = "pos: (%.2f, %.2f, %.2f)\nangle: %d\nsteps: %d" % (
+                *self.agent.pos,
+                int(self.agent.dir * 180 / math.pi) % 360,
+                self.step_count,
+            )
+            self.text_label.draw()
 
         # Force execution of queued commands
         glFlush()

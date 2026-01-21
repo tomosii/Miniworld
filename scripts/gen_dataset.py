@@ -1,5 +1,8 @@
 import gymnasium as gym
 import math
+import pyglet
+
+pyglet.options["headless"] = True
 import miniworld
 import imageio
 import os
