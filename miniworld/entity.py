@@ -4,7 +4,10 @@ import numpy as np
 
 # Map of color names to RGB values
 from pyglet.gl import (
+    GL_DEPTH_TEST,
+    GL_LIGHTING,
     GL_LINES,
+    GL_LINE_LOOP,
     GL_QUADS,
     GL_TEXTURE_2D,
     GL_TRIANGLES,
@@ -13,6 +16,7 @@ from pyglet.gl import (
     glDisable,
     glEnable,
     glEnd,
+    glLineWidth,
     glNormal3f,
     glPopMatrix,
     glPushMatrix,
@@ -468,7 +472,7 @@ class Agent(Entity):
 
         # Bounding cylinder size for the agent
         # self.radius = 0.4
-        self.radius = 0.2
+        self.radius = 0.35
         self.height = 1.6
 
         # Object currently being carried by the agent
@@ -532,12 +536,25 @@ class Agent(Entity):
         p1 = p + 0.75 * (rv - dv)
         p2 = p + 0.75 * (-rv - dv)
 
+        glDisable(GL_LIGHTING)
         glColor3f(1, 0, 0)
+        # glColor3f(0 / 255, 255 / 255, 230 / 255)
         glBegin(GL_TRIANGLES)
         glVertex3f(*p0)
         glVertex3f(*p2)
         glVertex3f(*p1)
         glEnd()
+        glDisable(GL_DEPTH_TEST)
+        glLineWidth(3.0)
+        glColor3f(50 / 255, 10 / 255, 10 / 255)
+        glBegin(GL_LINE_LOOP)
+        glVertex3f(*p0)
+        glVertex3f(*p2)
+        glVertex3f(*p1)
+        glEnd()
+        glLineWidth(1.0)
+        glEnable(GL_DEPTH_TEST)
+        glEnable(GL_LIGHTING)
 
         """
         glBegin(GL_LINE_STRIP)

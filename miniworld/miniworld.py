@@ -1258,7 +1258,7 @@ class MiniWorldEnv(gym.Env):
     def render_local_top_view(
         self,
         frame_buffer=None,
-        view_size=2.0,
+        view_size=3.0,
         image_size=256,
         render_agent=True,
         return_scale=False,
@@ -1356,7 +1356,7 @@ class MiniWorldEnv(gym.Env):
         glDisable(GL_TEXTURE_2D)
         glDisable(GL_LIGHTING)
         glLineWidth(6.0)
-        glColor3f(0, 0, 0)
+        glColor3f(0.3, 0.3, 0.3)
 
         for room in self.rooms:
             for i in range(room.num_walls):

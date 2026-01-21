@@ -71,23 +71,23 @@ class SerialNineRooms(MiniWorldEnv, utils.EzPickle):
 
     TEXTURE_MAPPING = [
         12,
-        17,
+        9,
         16,
         0,
         18,
-        19,
+        6,
         10,
-        9,
+        19,
         15,
         7,
-        6,
         1,
+        17,
         3,
         11,
         4,
+        14,
         2,
         5,
-        14,
         13,
         8,
     ]
@@ -95,7 +95,7 @@ class SerialNineRooms(MiniWorldEnv, utils.EzPickle):
     TEXTURE_DEPENDENT_LENGTH = 3
 
     def __init__(self, **kwargs):
-        MiniWorldEnv.__init__(self, max_episode_steps=250, **kwargs)
+        MiniWorldEnv.__init__(self, max_episode_steps=1000, **kwargs)
         utils.EzPickle.__init__(self, **kwargs)
 
         # Allow only the movement actions
@@ -107,7 +107,7 @@ class SerialNineRooms(MiniWorldEnv, utils.EzPickle):
 
     def _get_shuffled_textures(self):
         texture_list = random.sample(self.TEXTURES, self.TEXTURE_DEPENDENT_LENGTH)
-        print(f"Initial texture list: {texture_list}")
+        # print(f"Initial texture list: {texture_list}")
         for _ in range(9):
             texture = self._get_mapped_texture(
                 texture_list[-self.TEXTURE_DEPENDENT_LENGTH]
@@ -137,15 +137,15 @@ class SerialNineRooms(MiniWorldEnv, utils.EzPickle):
                 #     f"min_x: {room.min_x}, max_x: {room.max_x}, min_z: {room.min_z}, max_z: {room.max_z}"
                 # )
 
-        for i, room in enumerate(rooms):
-            # room.floor_tex_name = shuffled_textures[i]
-            print(
-                f"Room {i}: min_x: {room.min_x}, max_x: {room.max_x}, min_z: {room.min_z}, max_z: {room.max_z}, floor_tex: {room.floor_tex_name}"
-            )
+        # for i, room in enumerate(rooms):
+        #     # room.floor_tex_name = shuffled_textures[i]
+        #     print(
+        #         f"Room {i}: min_x: {room.min_x}, max_x: {room.max_x}, min_z: {room.min_z}, max_z: {room.max_z}, floor_tex: {room.floor_tex_name}"
+        #     )
 
         # Assign textures to rooms
         shuffled_textures = self._get_shuffled_textures()
-        print(f"Shuffled textures: {shuffled_textures}")
+        # print(f"Shuffled textures: {shuffled_textures}")
         rooms[0].floor_tex_name = shuffled_textures[0]
         rooms[1].floor_tex_name = shuffled_textures[5]
         rooms[2].floor_tex_name = shuffled_textures[6]
@@ -245,10 +245,18 @@ class SerialNineRooms(MiniWorldEnv, utils.EzPickle):
         )
 
         self.place_agent(
-            # room=room0,
+            # room=rooms[0],
+            pos=[
+                -self.ENV_EDGE + self.ROOM_SIZE / 2,
+                0,
+                -self.ENV_EDGE + self.ROOM_SIZE / 2,
+            ],
+            dir=-math.pi / 2,
         )
 
     def step(self, action):
         obs, reward, termination, truncation, info = super().step(action)
+
+        # print(f"Agent position: {self.agent.pos}, direction: {self.agent.dir}")
 
         return obs, reward, termination, truncation, info

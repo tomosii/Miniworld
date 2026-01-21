@@ -30,6 +30,7 @@ def main():
     args = parser.parse_args()
     view_mode = "top" if args.top_view else "agent"
 
+    # view_mode = "top_local"
     view_mode = "top"
 
     env = gym.make(args.env_name, view=view_mode, render_mode="human")

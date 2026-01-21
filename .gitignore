@@ -116,3 +116,6 @@ test_results.txt
 
 # MacOS
 .DS_Store
+
+# Generated dataset
+generated/
