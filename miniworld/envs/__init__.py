@@ -176,3 +176,8 @@ gym.register(
     id="MiniWorld-SerialNineRooms-v0",
     entry_point="miniworld.envs.serialninerooms:SerialNineRooms",
 )
+
+gym.register(
+    id="MiniWorld-MeshNineRooms-v0",
+    entry_point="miniworld.envs.meshninerooms:MeshNineRooms",
+)

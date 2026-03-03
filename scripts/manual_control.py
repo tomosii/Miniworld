@@ -33,10 +33,13 @@ def main():
     # view_mode = "top_local"
     view_mode = "top"
 
-    env = gym.make(args.env_name, view=view_mode, render_mode="human")
+    env_name = "MiniWorld-MeshNineRooms-v0"
+    # env_name = args.env_name
+
+    env = gym.make(env_name, view=view_mode, render_mode="human")
     miniworld_version = miniworld.__version__
 
-    print(f"Miniworld v{miniworld_version}, Env: {args.env_name}")
+    print(f"Miniworld v{miniworld_version}, Env: {env_name}")
 
     manual_control = ManualControl(env, args.no_time_limit, args.domain_rand)
     manual_control.run()
