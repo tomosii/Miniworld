@@ -2,17 +2,15 @@
 
 
 import argparse
-import gymnasium as gym
-import math
-import miniworld
 import imageio
+import gymnasium as gym
+import miniworld
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 import multiprocessing as mp
 
-from enum import Enum
 from miniworld.miniworld import MiniWorldEnv
 
 
@@ -28,23 +26,9 @@ IMAGE_HEIGHT = 64
 TRAIN_EPISODES = 9900
 TEST_EPISODES = 100
 
+MAX_EPISODE_STEPS = 200
+
 DATASET_NAME = "mesh_nine_rooms"
-
-
-class Phase(Enum):
-    A_VERTICAL = 0
-    A_TURN = 1
-
-    B_HORIZONTAL = 2
-    B_TURN = 3
-
-    C_VERTICAL = 4
-    C_TURN = 5
-
-    D_HORIZONTAL = 6
-    D_TURN = 7
-
-    E_VERTICAL = 8
 
 
 # turn_left = 0
@@ -53,97 +37,129 @@ class Phase(Enum):
 # move_back = 3
 
 
-def match_position(value1, value2):
-    return abs(value1 - value2) < 0.1
+def _normalize_angle(angle):
+    return (angle + np.pi) % (2 * np.pi) - np.pi
 
 
-def match_direction(value1, value2):
-    # Allow 10 degree of error
-    return abs(value1 - value2) < 10 * (math.pi / 180)
+def _is_angle_close(current, target, tolerance_rad=0.12):
+    return abs(_normalize_angle(target - current)) < tolerance_rad
 
 
-def generate_sequence(env):
-    env.reset()
+def _is_pos_close(pos, target_x, target_z, tolerance=0.1):
+    return abs(pos[0] - target_x) < tolerance and abs(pos[2] - target_z) < tolerance
 
+
+def _room_centers(env):
     room_size = env.unwrapped.ROOM_SIZE
     env_edge = env.unwrapped.ENV_EDGE
+    hallway_length = env.unwrapped.HALLWAY_LENGTH
+    pitch = room_size + hallway_length
 
-    step = 0
-    phase = Phase.A_VERTICAL
-    action = MiniWorldEnv.Actions.move_forward
+    centers = {}
+    for row in range(3):
+        for col in range(3):
+            idx = row * 3 + col
+            centers[idx] = (
+                -env_edge + (room_size / 2) + col * pitch,
+                -env_edge + (room_size / 2) + row * pitch,
+            )
+    return centers
+
+
+def _room_adjacency():
+    adjacency = {idx: [] for idx in range(9)}
+    for row in range(3):
+        for col in range(3):
+            idx = row * 3 + col
+            if row > 0:
+                adjacency[idx].append((row - 1) * 3 + col)
+            if row < 2:
+                adjacency[idx].append((row + 1) * 3 + col)
+            if col > 0:
+                adjacency[idx].append(row * 3 + (col - 1))
+            if col < 2:
+                adjacency[idx].append(row * 3 + (col + 1))
+    return adjacency
+
+
+def _desired_direction(src_center, dst_center):
+    src_x, src_z = src_center
+    dst_x, dst_z = dst_center
+    dx = dst_x - src_x
+    dz = dst_z - src_z
+
+    if abs(dx) > abs(dz):
+        return 0.0 if dx > 0 else np.pi
+    return -np.pi / 2 if dz > 0 else np.pi / 2
+
+
+def _episode_seed(base_seed, episode_idx):
+    if base_seed is None:
+        return int.from_bytes(os.urandom(8), "little")
+    return int(base_seed) + int(episode_idx)
+
+
+def generate_sequence(env, seed=None):
+    rng = np.random.default_rng(seed)
+    env.reset(seed=seed)
+
+    room_centers = _room_centers(env)
+    adjacency = _room_adjacency()
 
     images = []
+    current_room = int(rng.integers(0, 9))
+    start_x, start_z = room_centers[current_room]
+    # Start each episode at the center of a random room.
+    env.unwrapped.agent.pos = np.array([start_x, env.unwrapped.agent.pos[1], start_z])
+    # Choose first target and orient the agent so the first action can be forward.
+    target_room = int(rng.choice(adjacency[current_room]))
+    desired_dir = _desired_direction(
+        room_centers[current_room], room_centers[target_room]
+    )
+    env.unwrapped.agent.dir = desired_dir
+    mode = "move_forward"
 
-    while True:
-        if phase == Phase.A_VERTICAL:
-            action = MiniWorldEnv.Actions.move_forward
-        elif phase == Phase.A_TURN:
-            action = MiniWorldEnv.Actions.turn_left
-        elif phase == Phase.B_HORIZONTAL:
-            action = MiniWorldEnv.Actions.move_forward
-        elif phase == Phase.B_TURN:
-            action = MiniWorldEnv.Actions.turn_left
-        elif phase == Phase.C_VERTICAL:
-            action = MiniWorldEnv.Actions.move_forward
-        elif phase == Phase.C_TURN:
-            action = MiniWorldEnv.Actions.turn_right
-        elif phase == Phase.D_HORIZONTAL:
-            action = MiniWorldEnv.Actions.move_forward
-        elif phase == Phase.D_TURN:
-            action = MiniWorldEnv.Actions.turn_right
-        elif phase == Phase.E_VERTICAL:
+    for step in range(MAX_EPISODE_STEPS):
+        pos = env.unwrapped.agent.pos
+        direction = env.unwrapped.agent.dir
+
+        if mode == "choose_target":
+            neighbors = adjacency[current_room]
+            target_room = int(rng.choice(neighbors))
+            desired_dir = _desired_direction(
+                room_centers[current_room], room_centers[target_room]
+            )
+            mode = "turn"
+
+        if mode == "turn":
+            if _is_angle_close(direction, desired_dir):
+                action = MiniWorldEnv.Actions.move_forward
+                mode = "move_forward"
+            else:
+                delta = _normalize_angle(desired_dir - direction)
+                action = (
+                    MiniWorldEnv.Actions.turn_left
+                    if delta > 0
+                    else MiniWorldEnv.Actions.turn_right
+                )
+        else:
             action = MiniWorldEnv.Actions.move_forward
 
         env.step(action)
         image = env.render()
-        # print(image.shape)
         image = cv2.resize(
             image, (IMAGE_WIDTH, IMAGE_HEIGHT), interpolation=cv2.INTER_LINEAR
         )
         images.append(image)
 
-        pos = env.unwrapped.agent.pos
-        dir = env.unwrapped.agent.dir
+        if mode == "move_forward":
+            pos = env.unwrapped.agent.pos
+            target_x, target_z = room_centers[target_room]
+            if _is_pos_close(pos, target_x, target_z):
+                current_room = target_room
+                mode = "choose_target"
 
-        if phase == Phase.A_VERTICAL and match_position(
-            pos[2], env_edge - (room_size / 2)
-        ):
-            phase = Phase.A_TURN
-
-        if phase == Phase.A_TURN and match_direction(dir, 0):
-            phase = Phase.B_HORIZONTAL
-
-        if phase == Phase.B_HORIZONTAL and match_position(pos[0], 0):
-            phase = Phase.B_TURN
-
-        if phase == Phase.B_TURN and match_direction(dir, math.pi / 2):
-            phase = Phase.C_VERTICAL
-
-        if phase == Phase.C_VERTICAL and match_position(
-            pos[2], -env_edge + (room_size / 2)
-        ):
-            phase = Phase.C_TURN
-
-        if phase == Phase.C_TURN and match_direction(dir, 0):
-            phase = Phase.D_HORIZONTAL
-
-        if phase == Phase.D_HORIZONTAL and match_position(
-            pos[0], env_edge - (room_size / 2)
-        ):
-            phase = Phase.D_TURN
-
-        if phase == Phase.D_TURN and match_direction(dir, -math.pi / 2):
-            phase = Phase.E_VERTICAL
-
-        if phase == Phase.E_VERTICAL and match_position(
-            pos[2], env_edge - (room_size / 2)
-        ):
-            # Episode complete
-            break
-
-        step += 1
-
-    print(f"Episode ended after {step} steps")
+    print(f"Episode ended after {MAX_EPISODE_STEPS} steps")
 
     return np.array(images, dtype=np.uint8)
 
@@ -157,8 +173,9 @@ def _init_worker(env_name, view_mode):
 
 
 def _generate_and_save(args):
-    split, idx, out_dir = args
-    images = generate_sequence(_WORKER_ENV)
+    split, idx, out_dir, base_seed = args
+    seed = _episode_seed(base_seed, idx)
+    images = generate_sequence(_WORKER_ENV, seed=seed)
     np.savez(os.path.join(out_dir, f"{idx}.npz"), video=images)
     return split, idx
 
@@ -170,6 +187,15 @@ def _parse_args():
         type=int,
         default=min(8, os.cpu_count() or 1),
         help="Number of parallel worker processes (use 1 for sequential).",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help=(
+            "Optional base random seed. If omitted, each episode uses OS entropy. "
+            "If set, episode seed = seed + episode_index."
+        ),
     )
     return parser.parse_args()
 
@@ -188,20 +214,23 @@ def main():
     if args.workers < 1:
         raise ValueError("--workers must be >= 1")
 
-    # images = generate_sequence(env)
-    # with imageio.get_writer(
-    #     os.path.join(output_root, f"{DATASET_NAME}.gif"),
-    #     mode="I",
-    #     loop=0,
-    #     duration=1,
-    # ) as writer:
-    #     for image in images:
-    #         writer.append_data(image)
+    env = gym.make(ENV_NAME, render_mode="rgb_array", view=VIEW_MODE)
+    images = generate_sequence(env)
+    with imageio.get_writer(
+        os.path.join(output_root, f"{DATASET_NAME}.gif"),
+        mode="I",
+        loop=0,
+        duration=1,
+    ) as writer:
+        for image in images:
+            writer.append_data(image)
+    return
 
     # example_episodes = 6
     # example_videos = []
-    # for _ in range(example_episodes):
-    #     images = generate_sequence(env)
+    # for i in range(example_episodes):
+    #     seed = _episode_seed(args.seed, i)
+    #     images = generate_sequence(env, seed=seed)
     #     example_videos.append(images)
 
     # min_length = min(video.shape[0] for video in example_videos)
@@ -222,21 +251,31 @@ def main():
 
         for i in range(TRAIN_EPISODES):
             print(f"\nGenerating train episode {i+1}/{TRAIN_EPISODES}")
-            images = generate_sequence(env)
+            seed = _episode_seed(args.seed, i)
+            images = generate_sequence(env, seed=seed)
             np.savez(os.path.join(train_dir, f"{i}.npz"), video=images)
 
         print()
 
         for i in range(TEST_EPISODES):
             print(f"\nGenerating test episode {i+1}/{TEST_EPISODES}")
-            images = generate_sequence(env)
+            seed = _episode_seed(args.seed, TRAIN_EPISODES + i)
+            images = generate_sequence(env, seed=seed)
             np.savez(os.path.join(test_dir, f"{i}.npz"), video=images)
 
         env.close()
     else:
         ctx = mp.get_context("spawn")
-        train_jobs = [("train", i, train_dir) for i in range(TRAIN_EPISODES)]
-        test_jobs = [("test", i, test_dir) for i in range(TEST_EPISODES)]
+        train_jobs = [("train", i, train_dir, args.seed) for i in range(TRAIN_EPISODES)]
+        test_jobs = [
+            (
+                "test",
+                i,
+                test_dir,
+                None if args.seed is None else args.seed + TRAIN_EPISODES,
+            )
+            for i in range(TEST_EPISODES)
+        ]
         total_jobs = len(train_jobs) + len(test_jobs)
         completed = 0
 

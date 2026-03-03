@@ -47,50 +47,50 @@ class MeshNineRooms(MiniWorldEnv, utils.EzPickle):
     ENV_EDGE = ENV_SIZE / 2
 
     TEXTURES = [
-        "grass_1",
-        "water_1",
-        "wood_1",
-        "slime_1",
-        "lava_1",
-        "floor_tiles_bw_1",
-        "lg_style_01_4tile_d_result",
-        "lg_style_01_wall_blue_1",
-        "lg_style_02_wall_dblue_d_result",
-        "lg_style_02_wall_purple_d_result",
-        "lg_style_03_wall_light_m_result",
-        "lg_style_03_wall_orange_1",
-        "lg_style_03_wall_purple_d_result",
-        "lg_style_04_wall_cerise_d_result",
-        "lg_style_04_wall_purple_d_result",
-        "lg_style_05_floor_blue_bright_d_result",
-        "lg_style_05_wall_yellow_bright_d_result",
         "lg_style_04_floor_cyan_d_result",
+        "lg_style_04_wall_cerise_d_result",
+        "lg_style_03_wall_orange_1",
+        "lg_style_02_wall_purple_d_result",
+        "water_1",
         "lg_style_01_wall_red_1",
+        "lg_style_05_wall_yellow_bright_d_result",
         "lg_style_02_floor_green_d_result",
+        "lg_style_01_4tile_d_result",
+        # "lg_style_01_wall_blue_1",
+        # "lg_style_02_wall_dblue_d_result",
+        # "lg_style_03_wall_purple_d_result",
+        # "lg_style_04_wall_purple_d_result",
+        # "wood_1",
+        # "grass_1",
+        # "slime_1",
+        # "lava_1",
+        # "floor_tiles_bw_1",
+        # "lg_style_05_floor_blue_bright_d_result",
+        # "lg_style_03_wall_light_m_result",
     ]
 
-    TEXTURE_MAPPING = [
-        12,
-        9,
-        16,
-        0,
-        18,
-        6,
-        10,
-        19,
-        15,
-        7,
-        1,
-        17,
-        3,
-        11,
-        4,
-        14,
-        2,
-        5,
-        13,
-        8,
-    ]
+    # TEXTURE_MAPPING = [
+    #     12,
+    #     9,
+    #     16,
+    #     0,
+    #     18,
+    #     6,
+    #     10,
+    #     19,
+    #     15,
+    #     7,
+    #     1,
+    #     17,
+    #     3,
+    #     11,
+    #     4,
+    #     14,
+    #     2,
+    #     5,
+    #     13,
+    #     8,
+    # ]
 
     TEXTURE_DEPENDENT_LENGTH = 3
 
@@ -120,6 +120,7 @@ class MeshNineRooms(MiniWorldEnv, utils.EzPickle):
         rooms = []
         for row in range(3):
             for col in range(3):
+                index = row * 3 + col
                 room = self.add_rect_room(
                     min_x=-self.ENV_EDGE + col * (self.ROOM_SIZE + self.HALLWAY_LENGTH),
                     max_x=-self.ENV_EDGE
@@ -129,7 +130,7 @@ class MeshNineRooms(MiniWorldEnv, utils.EzPickle):
                     max_z=-self.ENV_EDGE
                     + row * (self.ROOM_SIZE + self.HALLWAY_LENGTH)
                     + self.ROOM_SIZE,
-                    # floor_tex=self.TEXTURES[i],
+                    floor_tex=self.TEXTURES[index],
                     # floor_tex=current_texture,
                 )
                 rooms.append(room)
@@ -144,17 +145,17 @@ class MeshNineRooms(MiniWorldEnv, utils.EzPickle):
         #     )
 
         # Assign textures to rooms
-        shuffled_textures = self._get_shuffled_textures()
+        # shuffled_textures = self._get_shuffled_textures()
         # print(f"Shuffled textures: {shuffled_textures}")
-        rooms[0].floor_tex_name = shuffled_textures[0]
-        rooms[1].floor_tex_name = shuffled_textures[5]
-        rooms[2].floor_tex_name = shuffled_textures[6]
-        rooms[3].floor_tex_name = shuffled_textures[1]
-        rooms[4].floor_tex_name = shuffled_textures[4]
-        rooms[5].floor_tex_name = shuffled_textures[7]
-        rooms[6].floor_tex_name = shuffled_textures[2]
-        rooms[7].floor_tex_name = shuffled_textures[3]
-        rooms[8].floor_tex_name = shuffled_textures[8]
+        # rooms[0].floor_tex_name = shuffled_textures[0]
+        # rooms[1].floor_tex_name = shuffled_textures[5]
+        # rooms[2].floor_tex_name = shuffled_textures[6]
+        # rooms[3].floor_tex_name = shuffled_textures[1]
+        # rooms[4].floor_tex_name = shuffled_textures[4]
+        # rooms[5].floor_tex_name = shuffled_textures[7]
+        # rooms[6].floor_tex_name = shuffled_textures[2]
+        # rooms[7].floor_tex_name = shuffled_textures[3]
+        # rooms[8].floor_tex_name = shuffled_textures[8]
 
         # Add hallways between rooms (only vertical)
         for col in range(3):
